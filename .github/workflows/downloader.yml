@@ -1,0 +1,28 @@
+name: 'Yu-Gi-Oh! Card Downloader'
+description: 'Downloads Yu-Gi-Oh! card images from YGOProDeck API and uploads them to the repository'
+branding:
+  icon: 'download'
+  color: 'purple'
+
+inputs:
+  github_token:
+    description: 'GitHub token for repository access'
+    required: true
+  repository:
+    description: 'Repository name (format: owner/repo)'
+    required: true
+  image_directory:
+    description: 'Directory in the repository for card images'
+    required: true
+    default: 'images'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - '--token'
+    - ${{ inputs.github_token }}
+    - '--repo'
+    - ${{ inputs.repository }}
+    - '--image-dir'
+    - ${{ inputs.image_directory }}
