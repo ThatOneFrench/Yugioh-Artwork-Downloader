@@ -52,7 +52,8 @@ class YuGiOhAPI:
     """Class for interacting with the YGOProDeck API."""
     
     BASE_URL = "https://db.ygoprodeck.com/api/v7/cardinfo.php"
-    REQUEST_DELAY = 0.05  # 50ms delay between requests to respect rate limiting
+    # 50ms delay between requests to respect rate limiting
+    REQUEST_DELAY = 0.05
     
     def __init__(self):
         self.logger = logging.getLogger("YuGiOhAPI")
@@ -84,7 +85,7 @@ class YuGiOhAPI:
                 shutil.copyfileobj(response.raw, f)
                 
             self.logger.debug(f"Downloaded image: {save_path}")
-            time.sleep(self.REQUEST_DELAY)  # Respect rate limiting
+            time.sleep(self.REQUEST_DELAY)
             return True
             
         except requests.RequestException as e:
@@ -107,10 +108,8 @@ class GitHubRepository:
             with open(file_path, 'rb') as f:
                 content = f.read()
                 
-            # Check if file already exists
             try:
                 contents = self.repo.get_contents(github_path)
-                # If file exists, update it
                 self.repo.update_file(
                     github_path,
                     f"Update {github_path}",
@@ -119,7 +118,6 @@ class GitHubRepository:
                 )
                 self.logger.info(f"Updated file: {github_path}")
             except Exception:
-                # If file doesn't exist, create it
                 self.repo.create_file(
                     github_path,
                     f"Add {github_path}",
@@ -173,7 +171,6 @@ class YuGiOhCardSynchronizer:
         self.image_dir = image_dir
         self.local_dir = Path("temp_images")
         
-        # Create temp directory if it doesn't exist
         if not self.local_dir.exists():
             self.local_dir.mkdir(parents=True)
     
@@ -186,11 +183,9 @@ class YuGiOhCardSynchronizer:
     def run(self):
         """Main method to synchronize card images with GitHub repository."""
         try:
-            # Get all cards from API
             all_cards = self.api.get_all_cards()
             self.logger.info(f"Fetched {len(all_cards)} cards from API")
             
-            # Get existing files in GitHub repository
             existing_files = self.github_repo.get_existing_files(self.image_dir)
             existing_ids = set()
             
@@ -201,7 +196,6 @@ class YuGiOhCardSynchronizer:
             
             self.logger.info(f"Found {len(existing_ids)} existing card images in the repository")
             
-            # Download and upload new card images
             valid_card_ids = set()
             cards_processed = 0
             
@@ -216,22 +210,17 @@ class YuGiOhCardSynchronizer:
                 for image in card.card_images:
                     valid_card_ids.add(image.id)
                     
-                    # Skip if image already exists in repository
                     if image.id in existing_ids:
                         continue
                     
-                    # Skip if no cropped image available
                     if not image.image_url_cropped:
                         continue
                     
-                    # Download image
                     image_path = self.local_dir / f"{image.id}.jpg"
                     if self.api.download_card_image(image.image_url_cropped, image_path):
-                        # Upload image to GitHub
                         github_path = f"{self.image_dir}/{image.id}.jpg"
                         self.github_repo.upload_file(image_path, github_path)
             
-            # Remove obsolete images
             for file_path in existing_files:
                 filename = os.path.basename(file_path)
                 if filename.endswith(".jpg") and filename.split(".")[0].isdigit():
